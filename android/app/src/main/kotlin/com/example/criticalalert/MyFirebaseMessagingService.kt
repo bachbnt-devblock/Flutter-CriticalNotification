@@ -13,7 +13,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
   }
 
   override fun onMessageReceived(remoteMessage: RemoteMessage) {
-    EmergencyAlarmService.startAlarm(this, remoteMessage.data["title"])
+    EmergencyAlarmService.startAlarm(this, remoteMessage.data["action"])
 
     Log.i(TAG, "received")
     try {

@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:after_layout/after_layout.dart';
-import 'package:criticalalert/new_screen.dart';
+import 'package:criticalalert/screen_one.dart';
+import 'package:criticalalert/screen_two.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dnd/flutter_dnd.dart';
@@ -11,12 +12,15 @@ import 'package:volume/volume.dart';
 void main() => runApp(App());
 
 class App extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Home(),
     );
   }
+
+
 }
 
 class Home extends StatefulWidget {
@@ -86,7 +90,7 @@ class _HomeState extends State<Home> with AfterLayoutMixin<Home> {
 
   Future<void> selectNotification(String payload) async {
     await Navigator.push(
-        context, MaterialPageRoute(builder: (context) => NewScreen()));
+        context, MaterialPageRoute(builder: (context) => ScreenOne()));
   }
 
   Future<void> initAudioStreamType() async {
@@ -153,6 +157,22 @@ class _HomeState extends State<Home> with AfterLayoutMixin<Home> {
     await flutterLocalNotificationsPlugin.initialize(
         initializationSettings, onSelectNotification: selectNotification);
     await initAudioStreamType();
+    await handleMethod();
+  }
+  Future<void> handleMethod() async {
+    String nextAction="";
+    try{
+      nextAction = await platform.invokeMethod("getServiceData");
+      if(nextAction=="action1"){
+        await Navigator.push(
+            context, MaterialPageRoute(builder: (context) => ScreenOne()));
+      }else if(nextAction=="action2"){
+        await Navigator.push(
+            context, MaterialPageRoute(builder: (context) => ScreenTwo()));
+      }
+    }catch(e){
+
+    }
   }
 }
 
