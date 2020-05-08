@@ -9,6 +9,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 
 const val EMERGENCY_CHANNEL = "EMERGENCY_CHANNEL"
@@ -17,10 +18,12 @@ const val ACTION_START_ALARM = "ACTION_START_ALARM"
 
 class EmergencyAlarmService : Service() {
   companion object {
-    fun startAlarm(context: Context, data: String?) {
+    fun startAlarm(context: Context, data: Map<String, String>) {
       val intent = Intent(context, EmergencyAlarmService::class.java).apply {
         action = ACTION_START_ALARM
-        putExtra("next_action", data)
+        for ((key, value) in data) {
+          putExtra(key, value)
+        }
       }
       context.startService(intent)
     }
@@ -42,6 +45,8 @@ class EmergencyAlarmService : Service() {
   override fun onCreate() {
     super.onCreate()
 
+    Log.e("*****", "onCreate")
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val channel = NotificationChannel(
           EMERGENCY_CHANNEL,
@@ -58,6 +63,8 @@ class EmergencyAlarmService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    Log.e("*****", "onStartCommand ${alarmPlayer.toString()}")
+
     val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
     audioManager.setStreamVolume(
         AudioManager.STREAM_NOTIFICATION,
@@ -72,16 +79,19 @@ class EmergencyAlarmService : Service() {
     }
 
     val openActivityIntent = Intent(this, MainActivity::class.java).apply {
-      action = intent?.getStringExtra("next_action")
+      action = intent?.getStringExtra("action")
+
+      for (key in intent!!.extras!!.keySet()) {
+        putExtra(key, intent.getStringExtra(key))
+        Log.e("****** putExtra", "$key ${intent.getStringExtra(key)}")
+      }
     }
     val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, openActivityIntent, 0)
 
     val notification: Notification =
         NotificationCompat.Builder(this, EMERGENCY_CHANNEL)
-            .setContentTitle("SPD Emergency")
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setContentText("Save the world!!!!")
+            .setContentTitle(intent?.getStringExtra("title"))
+            .setContentText(intent?.getStringExtra("body"))
             .setContentIntent(pendingIntent)
             .setSmallIcon(R.drawable.launch_background)
             .build()
@@ -108,6 +118,12 @@ class EmergencyAlarmService : Service() {
     }
 
     return START_NOT_STICKY
+  }
+
+  override fun onDestroy() {
+    Log.e("*****", "onDestroy")
+//    remove
+    super.onDestroy()
   }
 
 }
