@@ -63,7 +63,7 @@ class EmergencyAlarmService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    Log.e("*****", "onStartCommand ${alarmPlayer.toString()}")
+    Log.e("*****", "onStartCommand $alarmPlayer")
 
     val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
     audioManager.setStreamVolume(
@@ -79,24 +79,35 @@ class EmergencyAlarmService : Service() {
     }
 
     val openActivityIntent = Intent(this, MainActivity::class.java).apply {
-      action = intent?.getStringExtra("action")
+//      action = intent?.getStringExtra("action")
 
       for (key in intent!!.extras!!.keySet()) {
         putExtra(key, intent.getStringExtra(key))
-        Log.e("****** putExtra", "$key ${intent.getStringExtra(key)}")
+        Log.e("************ putExtra", "$key ${intent.getStringExtra(key)}")
       }
     }
     val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, openActivityIntent, 0)
 
-    val notification: Notification =
+    val foregroundNotification: Notification =
         NotificationCompat.Builder(this, EMERGENCY_CHANNEL)
-            .setContentTitle(intent?.getStringExtra("title"))
-            .setContentText(intent?.getStringExtra("body"))
+            .setContentTitle(EMERGENCY_CHANNEL)
+            .setContentText(EMERGENCY_CHANNEL)
             .setContentIntent(pendingIntent)
             .setSmallIcon(R.drawable.launch_background)
             .build()
 
-    startForeground(-1, notification)
+    startForeground(-1, foregroundNotification)
+
+    val emergencyNotification: Notification =
+        NotificationCompat.Builder(this, EMERGENCY_CHANNEL)
+            .setContentTitle(intent?.getStringExtra("title"))
+            .setContentText(intent?.getStringExtra("body"))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(false)
+            .setSmallIcon(R.drawable.launch_background)
+            .build()
+
+    notificationManager.notify((Math.random() * 1000000).toInt(), emergencyNotification)
 
     alarmPlayer.setOnCompletionListener {
       alarmPlayer.stop()
