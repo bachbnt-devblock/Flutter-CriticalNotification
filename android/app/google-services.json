@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "818306050521",
+    "firebase_url": "https://criticalalert-ad94f.firebaseio.com",
+    "project_id": "criticalalert-ad94f",
+    "storage_bucket": "criticalalert-ad94f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:818306050521:android:fb941ef7c9b1c98be411c8",
+        "android_client_info": {
+          "package_name": "com.example.criticalalert"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "818306050521-6iljglo422h3kqskrinldcl3h792jlaf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfN4wCcSZDhex5BuPDkVH0RLoJSMiAR5Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "818306050521-6iljglo422h3kqskrinldcl3h792jlaf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
