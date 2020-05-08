@@ -157,12 +157,11 @@ class _HomeState extends State<Home> with AfterLayoutMixin<Home> {
     await flutterLocalNotificationsPlugin.initialize(
         initializationSettings, onSelectNotification: selectNotification);
     await initAudioStreamType();
-    await handleMethod();
+    platform.setMethodCallHandler(handleMethod);
   }
-  Future<void> handleMethod() async {
-    String nextAction="";
+  Future<void> handleMethod(MethodCall call) async {
+    String nextAction=call.arguments;
     try{
-      nextAction = await platform.invokeMethod("getServiceData");
       if(nextAction=="action1"){
         await Navigator.push(
             context, MaterialPageRoute(builder: (context) => ScreenOne()));

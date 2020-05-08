@@ -1,5 +1,6 @@
 package com.example.criticalalert
 
+import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Bundle
 import android.util.Log
@@ -16,11 +17,14 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterActivity(),MethodChannel.MethodCallHandler {
     val TAG="MainActivity"
     val CHANNEL="crossingthestreams.io/resourceResolver"
-    private var nextAction=""
+    var nextAction=""
+    lateinit var methodChannel: MethodChannel
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        nextAction= intent?.getStringExtra("next_action")?:""
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        nextAction=intent.getStringExtra("action")
+        Log.i(TAG,"nextAction: $nextAction")
+        methodChannel.invokeMethod("getServiceData",nextAction)
     }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -34,7 +38,8 @@ class MainActivity: FlutterActivity(),MethodChannel.MethodCallHandler {
             Log.i(TAG,"*** token: ${token}")
         })
         FirebaseMessaging.getInstance().isAutoInitEnabled=true
-        MethodChannel(flutterEngine.dartExecutor, CHANNEL).setMethodCallHandler(this::onMethodCall)
+        methodChannel=MethodChannel(flutterEngine.dartExecutor, CHANNEL)
+        methodChannel.setMethodCallHandler(this::onMethodCall)
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
