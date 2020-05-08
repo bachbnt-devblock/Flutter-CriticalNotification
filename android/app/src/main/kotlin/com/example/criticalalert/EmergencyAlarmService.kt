@@ -12,7 +12,10 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
-const val EMERGENCY_CHANNEL = "EMERGENCY_CHANNEL"
+const val EMERGENCY_FOREGROUND_SERVICE_CHANNEL = "EMERGENCY_FOREGROUND_SERVICE_CHANNEL"
+const val EMERGENCY_FOREGROUND_SERVICE_NOTIFICATION_ID = -1
+
+const val EMERGENCY_DEFAULT_CHANNEL = "EMERGENCY_DEFAULT_CHANNEL"
 
 const val ACTION_START_ALARM = "ACTION_START_ALARM"
 
@@ -29,14 +32,13 @@ class EmergencyAlarmService : Service() {
     }
   }
 
+  private val vibrationPattern = longArrayOf(0, 400, 200, 400)
+
   private val notificationManager: NotificationManager
     get() = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
   private val audioManager: AudioManager
     get() = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-//    private val vibrationService: Vibrator
-//        get() = getSystemService(VIBRATOR_SERVICE) as Vibrator
 
   private lateinit var alarmPlayer: MediaPlayer
 
@@ -47,80 +49,28 @@ class EmergencyAlarmService : Service() {
 
     Log.e("*****", "onCreate")
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      val channel = NotificationChannel(
-          EMERGENCY_CHANNEL,
-          EMERGENCY_CHANNEL,
-          NotificationManager.IMPORTANCE_HIGH
-      )
+    createForegroundChannel()
 
-      notificationManager.createNotificationChannel(channel)
-    }
-
-//    alarmPlayer = MediaPlayer.create(this, R.raw.music_box)
-    val uri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-    alarmPlayer = MediaPlayer.create(this, uri)
+    initAlarmMediaPlayer()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     Log.e("*****", "onStartCommand $alarmPlayer")
 
-    val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
-    audioManager.setStreamVolume(
-        AudioManager.STREAM_NOTIFICATION,
-        audioManager.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION),
-        4
-    )
+    startInForeground()
 
-    var currentInterruptionFilter: Int? = null
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      currentInterruptionFilter = notificationManager.currentInterruptionFilter
-      notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+    val reverseVolume = maximizeNotificationVolume()
+
+    val reverseDisableDoNotDisturb = disableDoNotDisturb()
+
+    if (intent != null) {
+      displayEmergencyNotification(intent)
     }
-
-    val openActivityIntent = Intent(this, MainActivity::class.java).apply {
-//      action = intent?.getStringExtra("action")
-
-      for (key in intent!!.extras!!.keySet()) {
-        putExtra(key, intent.getStringExtra(key))
-        Log.e("************ putExtra", "$key ${intent.getStringExtra(key)}")
-      }
-    }
-    val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, openActivityIntent, 0)
-
-    val foregroundNotification: Notification =
-        NotificationCompat.Builder(this, EMERGENCY_CHANNEL)
-            .setContentTitle(EMERGENCY_CHANNEL)
-            .setContentText(EMERGENCY_CHANNEL)
-            .setContentIntent(pendingIntent)
-            .setSmallIcon(R.drawable.launch_background)
-            .build()
-
-    startForeground(-1, foregroundNotification)
-
-    val emergencyNotification: Notification =
-        NotificationCompat.Builder(this, EMERGENCY_CHANNEL)
-            .setContentTitle(intent?.getStringExtra("title"))
-            .setContentText(intent?.getStringExtra("body"))
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(false)
-            .setSmallIcon(R.drawable.launch_background)
-            .build()
-
-    notificationManager.notify((Math.random() * 1000000).toInt(), emergencyNotification)
 
     alarmPlayer.setOnCompletionListener {
       alarmPlayer.stop()
-      audioManager.setStreamVolume(
-          AudioManager.STREAM_NOTIFICATION,
-          currentVol,
-          4
-      )
-
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && currentInterruptionFilter != null) {
-        notificationManager.setInterruptionFilter(currentInterruptionFilter)
-      }
-
+      reverseVolume.run()
+      reverseDisableDoNotDisturb.run()
       stopSelf()
     }
 
@@ -133,8 +83,107 @@ class EmergencyAlarmService : Service() {
 
   override fun onDestroy() {
     Log.e("*****", "onDestroy")
-//    remove
     super.onDestroy()
+  }
+
+  private fun createForegroundChannel() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val channel = NotificationChannel(
+          EMERGENCY_FOREGROUND_SERVICE_CHANNEL,
+          EMERGENCY_FOREGROUND_SERVICE_CHANNEL,
+          NotificationManager.IMPORTANCE_NONE
+      )
+
+      notificationManager.createNotificationChannel(channel)
+    }
+  }
+
+  private fun initAlarmMediaPlayer() {
+    //    alarmPlayer = MediaPlayer.create(this, R.raw.music_box)
+    val uri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+    alarmPlayer = MediaPlayer.create(this, uri)
+  }
+
+  private fun startInForeground() {
+    val builder = NotificationCompat.Builder(this, EMERGENCY_DEFAULT_CHANNEL)
+        .setContentTitle(EMERGENCY_DEFAULT_CHANNEL)
+        .setContentText(EMERGENCY_DEFAULT_CHANNEL)
+        .setSmallIcon(R.drawable.launch_background)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      builder.priority = NotificationManager.IMPORTANCE_NONE
+    }
+
+    val foregroundNotification = builder.build()
+
+    startForeground(EMERGENCY_FOREGROUND_SERVICE_NOTIFICATION_ID, foregroundNotification)
+  }
+
+  private fun maximizeNotificationVolume(): Runnable {
+    val volume = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
+    audioManager.setStreamVolume(
+        AudioManager.STREAM_NOTIFICATION,
+        audioManager.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION),
+        4
+    )
+
+    return Runnable {
+      audioManager.setStreamVolume(
+          AudioManager.STREAM_NOTIFICATION,
+          volume,
+          4
+      )
+    }
+  }
+
+  private fun disableDoNotDisturb(): Runnable {
+    var currentInterruptionFilter: Int? = null
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      currentInterruptionFilter = notificationManager.currentInterruptionFilter
+      notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+    }
+
+    return Runnable {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && currentInterruptionFilter != null) {
+        notificationManager.setInterruptionFilter(currentInterruptionFilter)
+      }
+    }
+  }
+
+  private fun displayEmergencyNotification(intent: Intent) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val channel = NotificationChannel(EMERGENCY_DEFAULT_CHANNEL,
+          EMERGENCY_DEFAULT_CHANNEL,
+          NotificationManager.IMPORTANCE_HIGH
+      ).apply {
+        vibrationPattern = vibrationPattern
+      }
+
+      notificationManager.createNotificationChannel(channel)
+    }
+
+    val openActivityIntent = Intent(this, MainActivity::class.java).apply {
+      action = intent.getStringExtra("action")
+
+      for (key in intent.extras!!.keySet()) {
+        putExtra(key, intent.getStringExtra(key))
+        Log.e("************ putExtra", "$key ${intent.getStringExtra(key)}")
+      }
+    }
+
+    val pendingIntent = PendingIntent.getActivity(this, 0, openActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+    val emergencyNotification: Notification =
+        NotificationCompat.Builder(this, EMERGENCY_DEFAULT_CHANNEL)
+            .setContentTitle(intent.getStringExtra("title"))
+            .setContentText(intent.getStringExtra("body"))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(false)
+            .setSmallIcon(R.drawable.launch_background)
+            .setVibrate(vibrationPattern)
+            .build()
+
+    notificationManager.notify((Math.random() * 1000000).toInt(), emergencyNotification)
   }
 
 }
