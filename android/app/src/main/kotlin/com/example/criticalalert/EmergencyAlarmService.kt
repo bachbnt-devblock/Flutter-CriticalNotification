@@ -21,7 +21,8 @@ const val ACTION_START_ALARM = "ACTION_START_ALARM"
 
 class EmergencyAlarmService : Service() {
   companion object {
-    fun startAlarm(context: Context, data: Map<String, String>) {
+    fun startAlarm(context: Context, data: HashMap<String, String>) {
+      Log.e("startAlarm ****", "")
       val intent = Intent(context, EmergencyAlarmService::class.java).apply {
         action = ACTION_START_ALARM
         for ((key, value) in data) {
@@ -57,15 +58,15 @@ class EmergencyAlarmService : Service() {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     Log.e("*****", "onStartCommand $alarmPlayer")
 
-    startInForeground()
+//    startInForeground()
 
     val reverseVolume = maximizeNotificationVolume()
 
     val reverseDisableDoNotDisturb = disableDoNotDisturb()
 
-    if (intent != null) {
-      displayEmergencyNotification(intent)
-    }
+//    if (intent != null) {
+//      displayEmergencyNotification(intent)
+//    }
 
     alarmPlayer.setOnCompletionListener {
       alarmPlayer.stop()
@@ -100,7 +101,7 @@ class EmergencyAlarmService : Service() {
 
   private fun initAlarmMediaPlayer() {
     //    alarmPlayer = MediaPlayer.create(this, R.raw.music_box)
-    val uri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+    val uri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
     alarmPlayer = MediaPlayer.create(this, uri)
   }
 
