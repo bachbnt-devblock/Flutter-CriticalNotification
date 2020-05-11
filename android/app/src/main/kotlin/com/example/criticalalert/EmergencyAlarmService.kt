@@ -91,7 +91,7 @@ class EmergencyAlarmService : Service() {
       val channel = NotificationChannel(
           EMERGENCY_FOREGROUND_SERVICE_CHANNEL,
           EMERGENCY_FOREGROUND_SERVICE_CHANNEL,
-          NotificationManager.IMPORTANCE_NONE
+          NotificationManager.IMPORTANCE_LOW
       )
 
       notificationManager.createNotificationChannel(channel)
@@ -105,13 +105,12 @@ class EmergencyAlarmService : Service() {
   }
 
   private fun startInForeground() {
-    val builder = NotificationCompat.Builder(this, EMERGENCY_DEFAULT_CHANNEL)
-        .setContentTitle(EMERGENCY_DEFAULT_CHANNEL)
-        .setContentText(EMERGENCY_DEFAULT_CHANNEL)
-        .setSmallIcon(R.drawable.launch_background)
+    val builder = NotificationCompat.Builder(this, EMERGENCY_FOREGROUND_SERVICE_CHANNEL)
+        .setContentTitle("Playing notification sound...")
+        .setSmallIcon(R.drawable.app_icon)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-      builder.priority = NotificationManager.IMPORTANCE_NONE
+      builder.priority = NotificationManager.IMPORTANCE_LOW
     }
 
     val foregroundNotification = builder.build()
@@ -179,7 +178,7 @@ class EmergencyAlarmService : Service() {
             .setContentText(intent.getStringExtra("body"))
             .setContentIntent(pendingIntent)
             .setAutoCancel(false)
-            .setSmallIcon(R.drawable.launch_background)
+            .setSmallIcon(R.drawable.app_icon)
             .setVibrate(vibrationPattern)
             .build()
 
